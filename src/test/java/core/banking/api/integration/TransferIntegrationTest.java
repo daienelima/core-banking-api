@@ -6,9 +6,12 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.errors.TopicExistsException;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,11 +26,14 @@ class TransferIntegrationTest extends AbstractIntegrationTest {
         try (AdminClient admin = AdminClient.create(
                 Map.of("bootstrap.servers", kafka.getBootstrapServers()))) {
 
-            var topics = admin.listTopics().names().get();
-            if (!topics.contains("transfer-topic")) {
+            try {
                 admin.createTopics(
-                        java.util.List.of(new NewTopic("transfer-topic", 1, (short) 1))
+                        List.of(new NewTopic("transfer-topic", 1, (short) 1))
                 ).all().get();
+            } catch (ExecutionException e) {
+                if (!(e.getCause() instanceof TopicExistsException)) {
+                    throw e;
+                }
             }
         }
 
