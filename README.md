@@ -1,6 +1,8 @@
 # Core Banking API
 
 ![CI](https://github.com/daienelima/core-banking-api/actions/workflows/ci.yml/badge.svg)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=daienelima_core-banking-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=daienelima_core-banking-api)
+
 
 Uma API de banco central construída com Spring Boot 3.5, Java 21, PostgreSQL e Apache Kafka, implementando padrões de resiliência e arquitetura limpa.
 
