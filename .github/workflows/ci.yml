@@ -11,7 +11,41 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: core_banking_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      zookeeper:
+        image: confluentinc/cp-zookeeper:7.5.0
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+        ports:
+          - 2181:2181
+
+      kafka:
+        image: confluentinc/cp-kafka:7.5.0
+        ports:
+          - 9092:9092
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
     steps:
+
       - name: Checkout do código
         uses: actions/checkout@v4
 
@@ -26,8 +60,35 @@ jobs:
         with:
           path: ~/.m2
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+
+      - name: Aguardar Postgres subir
+        run: |
+          for i in {1..10}; do
+            nc -z localhost 5432 && echo "Postgres pronto!" && exit 0
+            echo "Aguardando Postgres..."
+            sleep 5
+          done
+          exit 1
+
+      - name: Aguardar Kafka subir
+        run: |
+          for i in {1..10}; do
+            nc -z localhost 9092 && echo "Kafka pronto!" && exit 0
+            echo "Aguardando Kafka..."
+            sleep 5
+          done
+          exit 1
+
+      - name: Criar tópico Kafka
+        run: |
+          docker exec $(docker ps -qf "ancestor=confluentinc/cp-kafka:7.5.0") \
+          kafka-topics --create \
+          --topic transfer-topic \
+          --bootstrap-server localhost:9092 \
+          --partitions 1 \
+          --replication-factor 1
 
       - name: Build + Testes
-        run: mvn clean verify
+        run: mvn -B clean verify
+        env:
+          SPRING_PROFILES_ACTIVE: ci

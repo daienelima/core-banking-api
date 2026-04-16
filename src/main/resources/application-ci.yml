@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: core-banking-api
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/core_banking_db
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+    consumer:
+      group-id: notification-group-ci
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: core.banking.api.infrastructure.messaging.TransferEvent
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # 🔥 importante para CI
+    show-sql: false
+
+  main:
+    allow-bean-definition-overriding: true
+
+app:
+  kafka:
+    topics:
+      transfer: transfer-topic
+    consumer:
+      group-id: notification-group-ci
+
+logging:
+  level:
+    root: INFO
